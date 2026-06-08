@@ -4,9 +4,9 @@ export class Terrain {
   constructor(scene) {
     this.scene = scene;
     this.width = 40;
-    this.length = 600;
+    this.length = 1100;
     this.widthSegments = 40;
-    this.lengthSegments = 300;
+    this.lengthSegments = 550;
     
     this.geometry = null;
     this.material = null;
@@ -27,8 +27,9 @@ export class Terrain {
     const pos = this.geometry.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const vx = pos.getX(i);
-      const vy = pos.getY(i); // This represents Z axis in Three.js coordinates
-      const height = this.getHeightAt(vx, vy);
+      const vy = pos.getY(i);
+      const worldZ = -vy; // Plane Y corresponds to negative World Z after rotation
+      const height = this.getHeightAt(vx, worldZ);
       pos.setZ(i, height);
     }
     

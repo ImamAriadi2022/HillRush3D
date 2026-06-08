@@ -45,16 +45,67 @@ export class Vehicle {
           
           // Identify wheels
           if (child.name && child.name.toLowerCase().includes('wheel') && !child.name.toLowerCase().includes('black')) {
-            // Store reference to parent node if it represents the wheel group
-            // In our GLB, nodes like "Front_wheel" and "Rear_wheel" contain the meshes.
             this.wheels.push(child);
           }
         });
 
-        // Set initial scale and rotation (if GLB needs adjustment)
-        this.model.scale.set(1.0, 1.0, 1.0);
-        
+        // 1. Calculate original bounding box size
+        const box = new THREE.Box3().setFromObject(this.model);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        console.log('Original vehicle size:', size);
+
+        // 2. Auto-scale so that the longest dimension (usually length along Z) is 3.5 units
+        const maxDim = Math.max(size.x, size.y, size.z);
+        let scaleFactor = 1.0;
+        if (maxDim > 0) {
+          scaleFactor = 3.5 / maxDim;
+        }
+        this.model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        console.log('Applied scale factor:', scaleFactor);
+
+        // Set rotation order to YXZ for stable vehicle tilting
+        this.model.rotation.order = 'YXZ';
+        // Set initial rotation to face negative Z (90 deg around Y)
+        this.model.rotation.set(0, Math.PI / 2, 0);
+
         this.scene.add(this.model);
+
+        // 3. Compute dynamic chassis offset and wheel radius based ONLY on the wheels
+        this.model.updateMatrixWorld(true);
+        let lowestWheelBottom = 0;
+        let calculatedRadius = 0.6; // default fallback
+        
+        this.wheels.forEach((wheel) => {
+          const wheelBox = new THREE.Box3().setFromObject(wheel);
+          const wheelSize = new THREE.Vector3();
+          wheelBox.getSize(wheelSize);
+          const radius = wheelSize.y / 2;
+          
+          if (radius > 0) {
+            calculatedRadius = radius;
+          }
+          
+          const wheelWorldPos = new THREE.Vector3();
+          wheel.getWorldPosition(wheelWorldPos);
+          
+          const bottom = wheelWorldPos.y - radius;
+          if (bottom < lowestWheelBottom) {
+            lowestWheelBottom = bottom;
+          }
+        });
+        
+        this.wheelRadius = calculatedRadius;
+        console.log('Dynamic wheel radius:', this.wheelRadius);
+        
+        if (lowestWheelBottom < 0) {
+          this.chassisOffset = -lowestWheelBottom;
+        } else {
+          const scaledBox = new THREE.Box3().setFromObject(this.model);
+          this.chassisOffset = -scaledBox.min.y;
+        }
+        console.log('Calculated chassis offset:', this.chassisOffset);
+
         this.loaded = true;
         
         // Create headlights
@@ -70,18 +121,18 @@ export class Vehicle {
   createHeadlights() {
     if (!this.model) return;
 
-    // Left Headlight
+    // Left Headlight (Local front is -X in GLB space, sides are along Z)
     const leftLight = new THREE.SpotLight('#ffffff', 0, 25, Math.PI / 6, 0.5, 1);
-    leftLight.position.set(-0.8, 0.8, -1.8); // Local position in front of truck
-    leftLight.target.position.set(-0.8, 0.5, -10);
+    leftLight.position.set(-1.8, 0.8, -0.8); 
+    leftLight.target.position.set(-10, 0.5, -0.8);
     leftLight.castShadow = true;
     leftLight.shadow.mapSize.width = 512;
     leftLight.shadow.mapSize.height = 512;
 
     // Right Headlight
     const rightLight = new THREE.SpotLight('#ffffff', 0, 25, Math.PI / 6, 0.5, 1);
-    rightLight.position.set(0.8, 0.8, -1.8);
-    rightLight.target.position.set(0.8, 0.5, -10);
+    rightLight.position.set(-1.8, 0.8, 0.8);
+    rightLight.target.position.set(-10, 0.5, 0.8);
     rightLight.castShadow = true;
     rightLight.shadow.mapSize.width = 512;
     rightLight.shadow.mapSize.height = 512;
@@ -114,34 +165,45 @@ export class Vehicle {
     // Clamp speed limits (reverse is slower)
     this.speed = THREE.MathUtils.clamp(this.speed, -this.maxSpeed * 0.4, this.maxSpeed);
 
-    // 2. Update Position Z (along track length)
+    // 2. Process Lateral Steering Input (A: right, D: left)
+    const lateralSpeed = 8.0;
+    if (input.left) {
+      this.position.x -= lateralSpeed * dt;
+    }
+    if (input.right) {
+      this.position.x += lateralSpeed * dt;
+    }
+    
+    // Clamp X so the car does not go off the side of the hills
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -5.2, 5.2);
+
+    // 3. Update Position Z (along track length)
     // Vehicle moves forward in negative Z direction
     this.position.z -= this.speed * dt;
-    this.position.x = 0; // Constrained to center lane
 
-    // 3. Terrain Snapping & Pitch Angle
+    // 4. Terrain Snapping & Pitch Angle
     const halfBase = this.wheelbase / 2;
     const frontZ = this.position.z - halfBase;
     const rearZ = this.position.z + halfBase;
 
-    // Query height at front & rear wheel positions
-    const frontY = terrain.getHeightAt(0, frontZ);
-    const rearY = terrain.getHeightAt(0, rearZ);
+    // Query height at front & rear wheel positions (using actual X position)
+    const frontY = terrain.getHeightAt(this.position.x, frontZ);
+    const rearY = terrain.getHeightAt(this.position.x, rearZ);
 
     // Calculate vehicle height (average) and pitch (tilt)
     this.position.y = (frontY + rearY) / 2 + this.chassisOffset;
     const pitch = Math.atan2(frontY - rearY, this.wheelbase);
 
-    // Apply translation to model
+    // Apply translation to model (and rotate Y by 90 deg so model faces negative Z)
     this.model.position.copy(this.position);
-    this.model.rotation.set(pitch, 0, 0);
+    this.model.rotation.set(pitch, Math.PI / 2, 0);
 
-    // 4. Spin Wheels
+    // 5. Spin Wheels
     // Rotational delta: distance traveled / wheel radius
     const rotationDelta = (this.speed * dt) / this.wheelRadius;
     this.wheels.forEach((wheel) => {
-      // Spin around local X axis
-      wheel.rotation.x -= rotationDelta;
+      // Spin around local Z axle (since front of vehicle is local -X)
+      wheel.rotation.z += rotationDelta;
     });
   }
 
@@ -158,7 +220,7 @@ export class Vehicle {
     
     if (this.model) {
       this.model.position.copy(this.position);
-      this.model.rotation.set(0, 0, 0);
+      this.model.rotation.set(0, Math.PI / 2, 0);
     }
 
     this.wheels.forEach((wheel) => {

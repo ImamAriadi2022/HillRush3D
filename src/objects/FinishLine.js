@@ -38,8 +38,8 @@ export class FinishLine {
     // Draw outline for legibility
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 4;
-    ctx.strokeText('FINISH', canvas.width / 2, canvas.height / 2);
-    ctx.fillText('FINISH', canvas.width / 2, canvas.height / 2);
+    ctx.strokeText('SELESAI', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('SELESAI', canvas.width / 2, canvas.height / 2);
 
     const bannerTexture = new THREE.CanvasTexture(canvas);
 

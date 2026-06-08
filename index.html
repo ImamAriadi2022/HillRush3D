@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HillRush 3D - Computer Graphics Project</title>
+  <title>HillRush 3D - Proyek Grafika Komputer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -30,22 +30,22 @@
     <header class="hud-header">
       <h1 class="hud-title">HillRush 3D</h1>
       <div class="hud-controls">
-        <button id="theme-toggle" class="btn btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
+        <button id="theme-toggle" class="btn btn-icon" title="Ubah Tema" aria-label="Ubah Tema">
           <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
           <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
-        <button id="restart-btn" class="btn btn-primary" title="Restart Game">Restart</button>
+        <button id="restart-btn" class="btn btn-primary" title="Mulai Ulang Game">Mulai Ulang</button>
       </div>
     </header>
 
     <div class="hud-stats">
       <div class="hud-stat-box score-box">
-        <span class="stat-label">SCORE</span>
+        <span class="stat-label">SKOR</span>
         <span id="score-value" class="stat-value">0</span>
       </div>
       <div class="hud-stat-box progress-box">
         <div class="progress-info">
-          <span class="stat-label">PROGRESS</span>
+          <span class="stat-label">PROGRES</span>
           <span id="progress-percent" class="stat-value">0%</span>
         </div>
         <div class="progress-bar-bg">
@@ -59,25 +59,33 @@
   <div id="start-modal" class="modal-overlay" style="z-index: 20;">
     <div class="modal-content glass-card animate-pop-in">
       <h2 class="modal-title">HillRush 3D</h2>
-      <p class="modal-subtitle">Grafika Komputer Final Project</p>
+      <p class="modal-subtitle">Proyek Akhir Grafika Komputer</p>
       
       <div class="instructions-card">
-        <h3>Controls</h3>
+        <h3>Kontrol Permainan</h3>
         <div class="control-row">
-          <span class="key-cap">D</span> or <span class="key-cap">➔</span>
-          <span class="control-desc">Accelerate / Move Forward</span>
+          <span class="key-cap">W</span>
+          <span class="control-desc">Maju / Gas</span>
         </div>
         <div class="control-row">
-          <span class="key-cap">A</span> or <span class="key-cap">➔</span>
-          <span class="control-desc">Reverse / Move Backward</span>
+          <span class="key-cap">S</span>
+          <span class="control-desc">Mundur / Rem</span>
+        </div>
+        <div class="control-row">
+          <span class="key-cap">A</span>
+          <span class="control-desc">Geser Kiri</span>
+        </div>
+        <div class="control-row">
+          <span class="key-cap">D</span>
+          <span class="control-desc">Geser Kanan</span>
         </div>
         <div class="control-row">
           <span class="mouse-icon">🖱️</span>
-          <span class="control-desc">Hover over coins to highlight them</span>
+          <span class="control-desc">Arahkan kursor ke koin untuk sorotan</span>
         </div>
       </div>
       
-      <button id="start-btn" class="btn btn-action">Start Game</button>
+      <button id="start-btn" class="btn btn-action">Mulai Permainan</button>
     </div>
   </div>
 
@@ -85,15 +93,15 @@
   <div id="victory-modal" class="modal-overlay hidden" style="z-index: 20;">
     <div class="modal-content glass-card">
       <div class="victory-trophy">🏆</div>
-      <h2 class="modal-title">Victory!</h2>
-      <p class="modal-subtitle">You reached the finish line!</p>
+      <h2 class="modal-title">Kemenangan!</h2>
+      <p class="modal-subtitle">Kamu telah mencapai garis finish!</p>
       
       <div class="score-summary">
-        <span class="summary-label">Final Score</span>
+        <span class="summary-label">Skor Akhir</span>
         <span id="victory-score" class="summary-value">0</span>
       </div>
 
-      <button id="victory-restart-btn" class="btn btn-action">Play Again</button>
+      <button id="victory-restart-btn" class="btn btn-action">Main Lagi</button>
     </div>
   </div>
 

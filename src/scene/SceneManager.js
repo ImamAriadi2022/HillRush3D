@@ -12,8 +12,8 @@ export class SceneManager {
     this.dirLight = null;
     
     // Camera follow offset configuration
-    this.followOffset = new THREE.Vector3(0, 4.5, 9.5); // x (centered), y (above), z (behind)
-    this.lookAheadOffset = new THREE.Vector3(0, 1.0, -3.0); // look slightly in front of truck
+    this.followOffset = new THREE.Vector3(0, 5.2, 12.0); // x (centered), y (above), z (behind)
+    this.lookAheadOffset = new THREE.Vector3(0, 1.2, -3.5); // look slightly in front of truck
     
     this.init();
   }

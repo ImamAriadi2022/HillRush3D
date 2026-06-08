@@ -2,6 +2,8 @@ export class InputHandler {
   constructor() {
     this.forward = false;
     this.backward = false;
+    this.right = false;
+    this.left = false;
 
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
@@ -23,30 +25,48 @@ export class InputHandler {
   reset() {
     this.forward = false;
     this.backward = false;
+    this.right = false;
+    this.left = false;
   }
 
   onKeyDown(event) {
     switch (event.code) {
-      case 'ArrowRight':
-      case 'KeyD':
+      case 'ArrowUp':
+      case 'KeyW':
         this.forward = true;
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        this.backward = true;
         break;
       case 'ArrowLeft':
       case 'KeyA':
-        this.backward = true;
+        this.left = true;
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        this.right = true;
         break;
     }
   }
 
   onKeyUp(event) {
     switch (event.code) {
-      case 'ArrowRight':
-      case 'KeyD':
+      case 'ArrowUp':
+      case 'KeyW':
         this.forward = false;
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        this.backward = false;
         break;
       case 'ArrowLeft':
       case 'KeyA':
-        this.backward = false;
+        this.left = false;
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        this.right = false;
         break;
     }
   }
