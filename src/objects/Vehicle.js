@@ -24,6 +24,9 @@ export class Vehicle {
 
     // Headlights for Dark Mode
     this.headlights = [];
+
+    // Lateral offset relative to winding road center
+    this.roadOffset = 0.0;
     
     this.loadModel();
   }
@@ -66,8 +69,8 @@ export class Vehicle {
 
         // Set rotation order to YXZ for stable vehicle tilting
         this.model.rotation.order = 'YXZ';
-        // Set initial rotation to face negative Z (90 deg around Y)
-        this.model.rotation.set(0, Math.PI / 2, 0);
+        // Set initial rotation to face negative Z (-90 deg around Y)
+        this.model.rotation.set(0, -Math.PI / 2, 0);
 
         this.scene.add(this.model);
 
@@ -121,18 +124,18 @@ export class Vehicle {
   createHeadlights() {
     if (!this.model) return;
 
-    // Left Headlight (Local front is -X in GLB space, sides are along Z)
+    // Left Headlight (Local front is +X in GLB space, sides are along Z)
     const leftLight = new THREE.SpotLight('#ffffff', 0, 25, Math.PI / 6, 0.5, 1);
-    leftLight.position.set(-1.8, 0.8, -0.8); 
-    leftLight.target.position.set(-10, 0.5, -0.8);
+    leftLight.position.set(1.8, 0.8, -0.8); 
+    leftLight.target.position.set(10, 0.5, -0.8);
     leftLight.castShadow = true;
     leftLight.shadow.mapSize.width = 512;
     leftLight.shadow.mapSize.height = 512;
 
     // Right Headlight
     const rightLight = new THREE.SpotLight('#ffffff', 0, 25, Math.PI / 6, 0.5, 1);
-    rightLight.position.set(-1.8, 0.8, 0.8);
-    rightLight.target.position.set(-10, 0.5, 0.8);
+    rightLight.position.set(1.8, 0.8, 0.8);
+    rightLight.target.position.set(10, 0.5, 0.8);
     rightLight.castShadow = true;
     rightLight.shadow.mapSize.width = 512;
     rightLight.shadow.mapSize.height = 512;
@@ -165,45 +168,63 @@ export class Vehicle {
     // Clamp speed limits (reverse is slower)
     this.speed = THREE.MathUtils.clamp(this.speed, -this.maxSpeed * 0.4, this.maxSpeed);
 
-    // 2. Process Lateral Steering Input (A: right, D: left)
-    const lateralSpeed = 8.0;
+    // 2. Process Lateral Steering Input relative to the winding road (A: left, D: right)
+    const lateralSpeed = 7.5;
     if (input.left) {
-      this.position.x -= lateralSpeed * dt;
+      this.roadOffset -= lateralSpeed * dt;
     }
     if (input.right) {
-      this.position.x += lateralSpeed * dt;
+      this.roadOffset += lateralSpeed * dt;
     }
     
-    // Clamp X so the car does not go off the side of the hills
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -5.2, 5.2);
+    // Clamp roadOffset so the car does not go off the side of the road
+    this.roadOffset = THREE.MathUtils.clamp(this.roadOffset, -4.5, 4.5);
 
-    // 3. Update Position Z (along track length)
-    // Vehicle moves forward in negative Z direction
+    // 3. Update Position Z (along track length, negative direction is forward)
     this.position.z -= this.speed * dt;
 
-    // 4. Terrain Snapping & Pitch Angle
+    // 4. Calculate World X based on Winding Road Center + lateral roadOffset
+    this.position.x = terrain.getRoadCenterX(this.position.z) + this.roadOffset;
+
+    // 5. Terrain Snapping & Rotations (Yaw & Pitch)
     const halfBase = this.wheelbase / 2;
     const frontZ = this.position.z - halfBase;
     const rearZ = this.position.z + halfBase;
 
-    // Query height at front & rear wheel positions (using actual X position)
-    const frontY = terrain.getHeightAt(this.position.x, frontZ);
-    const rearY = terrain.getHeightAt(this.position.x, rearZ);
+    // Track Front and Rear X coordinates along the curve
+    const frontX = terrain.getRoadCenterX(frontZ) + this.roadOffset;
+    const rearX = terrain.getRoadCenterX(rearZ) + this.roadOffset;
 
-    // Calculate vehicle height (average) and pitch (tilt)
+    // Query heights at front & rear wheels from road surface (takes bridges into account)
+    const frontY = terrain.getRoadHeightAt(frontX, frontZ);
+    const rearY = terrain.getRoadHeightAt(rearX, rearZ);
+
+    // Calculate vehicle Y height (average)
     this.position.y = (frontY + rearY) / 2 + this.chassisOffset;
+
+    // Calculate Yaw (angle of the road curve)
+    const dx = frontX - rearX;
+    const dz = frontZ - rearZ; // dz is negative since frontZ < rearZ
+    const yaw = Math.atan2(dx, dz);
+
+    // Calculate Pitch (uphill/downhill tilt)
     const pitch = Math.atan2(frontY - rearY, this.wheelbase);
 
-    // Apply translation to model (and rotate Y by 90 deg so model faces negative Z)
+    // Apply translation to model
     this.model.position.copy(this.position);
-    this.model.rotation.set(pitch, Math.PI / 2, 0);
+    
+    // Apply YXZ Euler rotations:
+    // - pitch around X
+    // - (-Math.PI / 2 + yaw) around Y (pointing forward + road curve yaw)
+    // - 0 around Z
+    this.model.rotation.set(pitch, -Math.PI / 2 + yaw, 0);
 
-    // 5. Spin Wheels
+    // 6. Spin Wheels
     // Rotational delta: distance traveled / wheel radius
     const rotationDelta = (this.speed * dt) / this.wheelRadius;
     this.wheels.forEach((wheel) => {
-      // Spin around local Z axle (since front of vehicle is local -X)
-      wheel.rotation.z += rotationDelta;
+      // Spin around local Z axle (since front of vehicle is local +X)
+      wheel.rotation.z -= rotationDelta;
     });
   }
 
@@ -217,10 +238,11 @@ export class Vehicle {
   reset() {
     this.position.set(0, 0, 0);
     this.speed = 0;
+    this.roadOffset = 0.0;
     
     if (this.model) {
       this.model.position.copy(this.position);
-      this.model.rotation.set(0, Math.PI / 2, 0);
+      this.model.rotation.set(0, -Math.PI / 2, 0);
     }
 
     this.wheels.forEach((wheel) => {

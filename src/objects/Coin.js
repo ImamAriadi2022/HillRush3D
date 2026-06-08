@@ -31,12 +31,14 @@ export class CoinManager {
 
     for (let i = 0; i < count; i++) {
       const z = startZ + i * step;
-      // Stagger coin x coordinates slightly (e.g. alternate left, center, right)
-      let x = 0;
-      if (i % 3 === 1) x = -2.0;
-      else if (i % 3 === 2) x = 2.0;
+      // Stagger coin x coordinates relative to the winding road center
+      const roadCenterX = terrain.getRoadCenterX(z);
+      let x = roadCenterX;
+      if (i % 3 === 1) x = roadCenterX - 2.0;
+      else if (i % 3 === 2) x = roadCenterX + 2.0;
 
-      const y = terrain.getHeightAt(x, z) + 1.6; // Hover above ground
+      // Query height from the road surface (takes bridges into account)
+      const y = terrain.getRoadHeightAt(x, z) + 1.6;
 
       const coinMesh = new THREE.Mesh(this.coinGeometry, this.coinMaterial.clone());
       coinMesh.position.set(x, y, z);

@@ -105,33 +105,36 @@ export class FinishLine {
     this.scene.add(this.group);
   }
 
-  // Adjust Y positions of pillars to rest on the terrain slope
+  // Adjust Y and X positions of pillars to rest on the winding road terrain
   adjustToTerrain(terrain) {
-    const leftY = terrain.getHeightAt(-6.2, this.z);
-    const rightY = terrain.getHeightAt(6.2, this.z);
-    const midY = terrain.getHeightAt(0, this.z);
+    const roadCenterX = terrain.getRoadCenterX(this.z);
+    const leftX = roadCenterX - 6.2;
+    const rightX = roadCenterX + 6.2;
+    const midX = roadCenterX;
 
-    // Update parts offsets
+    const leftY = terrain.getHeightAt(leftX, this.z);
+    const rightY = terrain.getHeightAt(rightX, this.z);
+
     const pillarHeight = 7.5;
     
     // Left Pillar
-    this.group.children[0].position.y = leftY + pillarHeight / 2;
-    this.group.children[4].position.y = leftY + 0.1; // left base plate
+    this.group.children[0].position.set(leftX, leftY + pillarHeight / 2, this.z);
+    this.group.children[4].position.set(leftX, leftY + 0.1, this.z); // left base plate
     
     // Right Pillar
-    this.group.children[1].position.y = rightY + pillarHeight / 2;
-    this.group.children[5].position.y = rightY + 0.1; // right base plate
+    this.group.children[1].position.set(rightX, rightY + pillarHeight / 2, this.z);
+    this.group.children[5].position.set(rightX, rightY + 0.1, this.z); // right base plate
 
     // Crossbar
     const avgPillarTopY = ((leftY + pillarHeight) + (rightY + pillarHeight)) / 2;
-    this.group.children[2].position.y = avgPillarTopY;
+    this.group.children[2].position.set(midX, avgPillarTopY, this.z);
     
     // Rotate crossbar slightly if left and right heights are different
     const dY = rightY - leftY;
     this.group.children[2].rotation.z = (Math.PI / 2) + Math.atan2(dY, 12.4);
 
     // Banner
-    this.group.children[3].position.y = avgPillarTopY - 0.9;
+    this.group.children[3].position.set(midX, avgPillarTopY - 0.9, this.z);
     this.group.children[3].rotation.z = Math.atan2(dY, 12.4);
   }
 

@@ -10,6 +10,7 @@ import { FinishLine } from '../objects/FinishLine.js';
 const STATE_START = 'START';
 const STATE_PLAYING = 'PLAYING';
 const STATE_VICTORY = 'VICTORY';
+const STATE_GAMEOVER = 'GAMEOVER';
 
 export class GameManager {
   constructor() {
@@ -18,7 +19,7 @@ export class GameManager {
     this.isDark = false;
     
     // Config
-    this.trackLength = 500; // Total track length in units (Z goes from 0 to -500)
+    this.trackLength = 1000; // Total track length in units (Z goes from 0 to -1000)
     
     // Confetti particles for victory celebration
     this.particles = [];
@@ -45,8 +46,8 @@ export class GameManager {
     this.finishLine = new FinishLine(this.sceneManager.scene, -this.trackLength);
     this.finishLine.adjustToTerrain(this.terrain);
 
-    // Initial coin spawn
-    this.coinManager.spawnCoins(this.terrain, 25, this.trackLength);
+    // Initial coin spawn (50 coins over 1000-unit track)
+    this.coinManager.spawnCoins(this.terrain, 50, this.trackLength);
 
     // 3. Bind UI Events
     this.uiManager.bindStartGame(() => this.startGame());
@@ -73,11 +74,19 @@ export class GameManager {
     this.uiManager.updateScore(this.score);
     this.uiManager.updateProgress(0);
 
+    // Hide modals
+    this.uiManager.hideGameOverModal();
+    this.uiManager.hideVictoryModal();
+
+    // Regenerate randomized bridges (some with 1, some with 2)
+    this.terrain.spawnBridges();
+
     // Reset objects
     this.vehicle.reset();
     this.coinManager.clear();
-    this.coinManager.spawnCoins(this.terrain, 25, this.trackLength);
+    this.coinManager.spawnCoins(this.terrain, 50, this.trackLength);
     this.finishLine.reset();
+    this.finishLine.adjustToTerrain(this.terrain);
     this.inputHandler.reset();
     
     // Clear confetti
@@ -120,6 +129,13 @@ export class GameManager {
     
     // Spawn confetti explosion at the finish line
     this.spawnConfetti();
+  }
+
+  triggerGameOver() {
+    this.state = STATE_GAMEOVER;
+    this.inputHandler.reset();
+    this.vehicle.speed = 0;
+    this.uiManager.showGameOverModal();
   }
 
   spawnConfetti() {
@@ -220,6 +236,12 @@ export class GameManager {
       if (this.finishLine.checkCollision(this.vehicle.position)) {
         this.triggerVictory();
       }
+
+      // Check Game Over condition (fell off bridge or road)
+      const normalY = this.terrain.getNormalHeightAt(this.vehicle.position.x, this.vehicle.position.z);
+      if (this.vehicle.position.y < normalY - 3.8) {
+        this.triggerGameOver();
+      }
     } else if (this.state === STATE_VICTORY) {
       // In victory, still run basic animations & cameras
       this.coinManager.update(dt, time, this.vehicle, () => {});
@@ -232,6 +254,10 @@ export class GameManager {
       if (this.vehicle.loaded) {
         this.sceneManager.snapCamera(this.vehicle);
       }
+    } else if (this.state === STATE_GAMEOVER) {
+      // In Game Over state, let the car keep falling, update camera follow
+      this.vehicle.update(dt, this.inputHandler, this.terrain);
+      this.sceneManager.updateCamera(this.vehicle, dt);
     }
 
     // Render 3D Frame

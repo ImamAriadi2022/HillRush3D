@@ -12,6 +12,9 @@ export class UIManager {
     this.victoryScore = document.getElementById('victory-score');
     this.victoryRestartBtn = document.getElementById('victory-restart-btn');
     
+    this.gameoverModal = document.getElementById('gameover-modal');
+    this.gameoverRestartBtn = document.getElementById('gameover-restart-btn');
+    
     this.restartBtn = document.getElementById('restart-btn');
     this.themeToggle = document.getElementById('theme-toggle');
     this.sunIcon = this.themeToggle.querySelector('.sun-icon');
@@ -34,6 +37,12 @@ export class UIManager {
     // Play again button in Victory Modal
     this.victoryRestartBtn.addEventListener('click', () => {
       this.hideVictoryModal();
+      callback();
+    });
+
+    // Restart button in Game Over Modal
+    this.gameoverRestartBtn.addEventListener('click', () => {
+      this.hideGameOverModal();
       callback();
     });
   }
@@ -89,5 +98,13 @@ export class UIManager {
       this.sunIcon.style.display = 'block';
       this.moonIcon.style.display = 'none';
     }
+  }
+
+  showGameOverModal() {
+    this.gameoverModal.classList.remove('hidden');
+  }
+
+  hideGameOverModal() {
+    this.gameoverModal.classList.add('hidden');
   }
 }
